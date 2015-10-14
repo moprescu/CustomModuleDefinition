@@ -1,6 +1,6 @@
 library(shiny)
 source("helper.R")
-Sys.setenv(R_ZIPCMD="C:/Rtools/bin/zip")
+#Sys.setenv(R_ZIPCMD="C:/Rtools/bin/zip")
 
 # Define server logic required to build app
 shinyServer(function(input, output, session) {
