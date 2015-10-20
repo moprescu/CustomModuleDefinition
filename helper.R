@@ -649,14 +649,17 @@ getXML <- function(varNames, input){
                       '</Description>\n\t\t </Input>\n')
   }
   #Add output ports
-  for(j in 1:(input$addOutput-input$removeOutput)){
-    varName <- paste0("output",j)
-    XMLText <- paste0(XMLText, '\t\t<Output id="', varName, 
-                      '" name="',input[[paste0(varName,"_name")]],
-                      '" type="DataTable">\n')
-    XMLText <- paste0(XMLText, '\t\t\t<Description>',input[[paste0(varName,"_desc")]],
-                      '</Description>\n\t\t</Output>\n')
+  if((input$addOutput-input$removeOutput)>0){
+    for(j in 1:(input$addOutput-input$removeOutput)){
+      varName <- paste0("output",j)
+      XMLText <- paste0(XMLText, '\t\t<Output id="', varName, 
+                        '" name="',input[[paste0(varName,"_name")]],
+                        '" type="DataTable">\n')
+      XMLText <- paste0(XMLText, '\t\t\t<Description>',input[[paste0(varName,"_desc")]],
+                        '</Description>\n\t\t</Output>\n')
+    } 
   }
+  
   #Add Visualization output
   if(input$visPort){
     XMLText <- paste0(XMLText, '\t\t<Output id="', 'deviceOutput', 
