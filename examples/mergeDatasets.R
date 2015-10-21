@@ -1,15 +1,12 @@
-#library(clipr)
-
-merge2Datasets <- function(dataset1, dataset2, swap = FALSE){
-  library(clipr)
+merge2Datasets <- function(dataframe1, dataframe2, swap = TRUE){
   if(swap){
-    return(rbind(dataset2, dataset1))
+    return(rbind(dataframe1, dataframe2))
   }
   else{
-    return(rbind(dataset1, dataset2))
+    return(rbind(dataframe2, dataframe1))
   }
 }
 
-merge3Datasets <- function(dataset1, dataset2, dataset3){
-  return(rbind(rbind(dataset1, dataset2), dataset3))
+merge3Datasets <- function(dataframe1, dataframe2, dataframe3){
+  return(rbind(rbind(dataframe1, dataframe2), dataframe3))
 }

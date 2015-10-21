@@ -1,4 +1,5 @@
 library(shiny)
+library(XML)
 
 # Predefined lists of port/arg properties.
 # 
@@ -627,81 +628,85 @@ getXML <- function(varNames, input){
   if(!is.null(validateXML(varNames, input)))
     return()
   
+  # Begin xml document
+  options(warn = -1)
+  xmlDoc <- xmlTree()
+  
+  # Begin module definition
   # Add module name
-  XMLText <- paste0('<Module name="',input$moduleName,'">\n')
+  xmlDoc$addNode("Module", attrs=c("name"=input$moduleName), close=FALSE)
   # Add module owner
-  XMLText <- paste0(XMLText, '\t<Owner>', input$moduleOwner, '</Owner>\n')
-  # Add description
-  XMLText <- paste0(XMLText, '\t<Description>', input$moduleDesc, '</Description>\n')
+  xmlDoc$addNode("Owner", input$moduleOwner)
+  # Add module description
+  xmlDoc$addNode("Description", input$moduleDesc)
   # Add language
-  XMLText <- paste0(XMLText, '\t<Language name="R" sourceFile="',
-                    input$inputFile, '" entryPoint="', input$inputMethod, '" />\n')
-  # Add ports
-  XMLText <- paste0(XMLText, '\t<Ports>\n')
-  # Add input ports
+  xmlDoc$addNode("Language", attrs=c("name"="R", 
+                                     "entryPoint"=input$inputMethod,
+                                     "sourceFile"=input$inputFile))
+  ### Add ports
+  childList <- c()
+  # Add input children
   for(varName in input$inputPorts){
     idx <- match(varName, varNames)
-    XMLText <- paste0(XMLText, '\t\t<Input id="', varName, 
-                      '" name="',input[[paste0("input",idx,"_name")]],
-                      '" type="',input[[paste0("input",idx,"_type")]],
-                      '" isOptional="',tolower(input[[paste0("input",idx,"_opt")]]),'">\n')
-    XMLText <- paste0(XMLText, '\t\t\t<Description>',input[[paste0("input",idx,"_desc")]],
-                      '</Description>\n\t\t </Input>\n')
+    child <- xmlDoc$addNode("Input", attrs=c("id"=varName, 
+                                             "name"=input[[paste0("input",idx,"_name")]],
+                                             "type"=input[[paste0("input",idx,"_type")]],
+                                             "isOptional"=tolower(input[[paste0("input",idx,"_opt")]])
+    ),
+    .children=c(xmlDoc$addNode("Description", input[[paste0("input",idx,"_desc")]]))
+    )
+    childList <- c(childList, child)
   }
-  #Add output ports
+  # Add output children
   if((input$addOutput-input$removeOutput)>0){
     for(j in 1:(input$addOutput-input$removeOutput)){
       varName <- paste0("output",j)
-      XMLText <- paste0(XMLText, '\t\t<Output id="', varName, 
-                        '" name="',input[[paste0(varName,"_name")]],
-                        '" type="DataTable">\n')
-      XMLText <- paste0(XMLText, '\t\t\t<Description>',input[[paste0(varName,"_desc")]],
-                        '</Description>\n\t\t</Output>\n')
-    } 
-  }
-  
-  #Add Visualization output
-  if(input$visPort){
-    XMLText <- paste0(XMLText, '\t\t<Output id="', 'deviceOutput', 
-                      '" name="', 'View Port', '" type="Visualization">\n')
-    XMLText <- paste0(XMLText, '\t\t\t<Description>', input[['visPortDesc']], '</Description>\n')
-    XMLText <- paste0(XMLText, '\t\t</Output>\n')
-  }
-  
-  XMLText <- paste0(XMLText, '\t</Ports>\n')
-  
-  # Add arguments
-  XMLText <- paste0(XMLText, '\t<Arguments>\n')
-  for(varName in varNames){
-    
-    if(!(varName %in% input$inputPorts)){
-      idx <- match(varName, varNames)
-      
-      type <- input[[paste0("input",idx,"_vartype")]]
-      XMLText <- paste0(XMLText, '\t\t<Arg id="', varName, 
-                        '" name="',input[[paste0("input",idx,"_varname")]],
-                        '" type="',type,
-                        '">\n')
-      
-      XMLText <- paste0(XMLText, '\t\t\t<Properties ')
-      propList <- nameList[[type]]
-      
-      if(type=="bool"){
-        XMLText <- paste0(XMLText,"default",'="',tolower(input[[paste0("input",idx,propList[[1]])]]),'" ')
-      }
-      else{
-        for(prop in names(propList))
-          XMLText <- paste0(XMLText,prop,'="',input[[paste0("input",idx,propList[[prop]])]],'" ')
-      }
-        
-      XMLText <- paste0(XMLText,'/>\n')
-      XMLText <- paste0(XMLText, '\t\t\t<Description>',input[[paste0("input",idx,"_vardesc")]],
-                        '</Description>\n\t\t </Arg>\n')
+      child <- xmlDoc$addNode("Output", attrs=c("id"=varName, 
+                                                "name"=input[[paste0(varName, "_name")]],
+                                                "type"="DataTable"),
+                              .children=c(xmlDoc$addNode("Description", input[[paste0(varName, "_desc")]]))
+      )
+      childList <- c(childList, child)
     }
   }
+  # Add visualization port
+  if(input$visPort){
+    child <- xmlDoc$addNode("Output", 
+                            attrs=c("id"="deviceOutput", "name"="View Port", "type"="Visualization"),
+                            .children=c(xmlDoc$addNode("Description",  input[['visPortDesc']])))
+    childList <- c(childList, child)
+  } 
+  ### Attach children to "Ports" parent
+  xmlDoc$addNode("Ports", .children = childList)
   
-  XMLText <- paste0(XMLText, '\t</Arguments>\n')
-  XMLText <- paste0(XMLText, '</Module>')
+  ### Add arguments
+  childList <- c()
+  # Add arg children
+  for(varName in setdiff(varNames, input$inputPorts)){
+    idx <- match(varName, varNames)
+    attrs <- c()
+    
+    type <- input[[paste0("input",idx,"_vartype")]]
+    propList <- nameList[[type]]
+    if(type=="bool"){
+      attrs <- c("default"=tolower(input[[paste0("input",idx,"_boolopt")]]))
+    }
+    else{
+      for(prop in names(propList))
+        attrs[[prop]] <- input[[paste0("input",idx,propList[[prop]])]]
+    }
+    child <- xmlDoc$addNode("Arg", attrs=c("id"=varName,
+                                           "name"=input[[paste0("input",idx,"_varname")]],
+                                           "type"=input[[paste0("input",idx,"_vartype")]]),
+                            .children=c(xmlDoc$addNode("Properties", attrs=attrs), 
+                                        xmlDoc$addNode("Description", input[[paste0("input",idx,"_vardesc")]]))
+    )
+    childList <- c(childList, child)
+  }
+  ### Attach children to "Arguments" parent           
+  xmlDoc$addNode("Arguments", .children = childList)
+  # Close module definition
+  xmlDoc$closeNode()
   
-  return(XMLText)
+  return(saveXML(xmlDoc))
 }

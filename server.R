@@ -31,15 +31,15 @@ shinyServer(function(input, output, session) {
   output$chooseFile <- renderUI({
     if(length(input$srcFile$name)==1)
       options <- NULL
-    else
+    else{
       options <- list(
         placeholder = 'Select',
         onInitialize = I('function() { this.setValue(""); }')
       )
-      
-      selectizeInput("inputFile", labelRequired("Choose source file:"), 
-                     choices = input$srcFile$name, width="170px",
-                     options = options)
+    }
+    selectizeInput("inputFile", labelRequired("Choose source file:"), 
+                    choices = input$srcFile$name, width="170px",
+                    options = options)
     
   })
   
@@ -49,12 +49,12 @@ shinyServer(function(input, output, session) {
   output$chooseMethod <- renderUI({
     if(length(names(rMethodsNames()))==1)
       options <- NULL
-    else
+    else{
       options <- list(
         placeholder = 'Select',
         onInitialize = I('function() { this.setValue(""); }')
-      )
-    
+      ) 
+    }
     selectizeInput("inputMethod", labelRequired("Choose method:"), 
                    choices = names(rMethodsNames()),  width="170px",
                    options = options)
@@ -169,9 +169,10 @@ shinyServer(function(input, output, session) {
       
       if(is.null(incompleteField))
         return()
-      else
+      else{
         session$sendCustomMessage(type = "incompleteData", 
-                                    incompleteField)
+                                  incompleteField)
+      }
       
     })
   })

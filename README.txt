@@ -2,9 +2,9 @@ Author: Antonia Miruna Oprescu
 Setup instructions:
 
 To run this app locally, you need R and RStudio.
-From R or RStudio, install and load the shiny package:
+From R or RStudio, install and load the following packages:
 
-	install.packages("shiny")
+	install.packages(c("shiny", "XML"))
 	library(shiny)
 
 You can start the app from the directory containing 
